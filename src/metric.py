@@ -24,6 +24,8 @@ class Metric:
             deltat=numpy.roll(epoch,-1)-epoch
             deltat=deltat[0:len(deltat)-1]
             ans=self.omega*(T-(1+self.zmax)*self.T0)
+            if (ans <= 0):
+		return 0
             ans = ans * (self.tau/T*numpy.sum(numpy.minimum(ston**2/self.snr_0**2,1)*(1-numpy.exp(-deltat/self.tau)))-self.a*numpy.var(numpy.minimum(ston,self.snr_0))/self.snr_0**2)
             return ans / (self.tau/self.dt0*(1-numpy.exp(-self.dt0/self.tau))) # normalize to ideal survey
 
