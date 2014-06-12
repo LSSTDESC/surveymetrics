@@ -16,12 +16,20 @@ root.dbAddress = {'dbAddress':'sqlite:////Users/akim/Downloads/opsimblitz2_1060_
 # Name of this run (filename base)
 root.opsimName = 'SNMetric'
 
+nside=16
+
+import healpy
+solidangle = healpy.nside2pixarea(nside, degrees=True)
+import numpy
+solidangle = numpy.asscalar(solidangle)
+
 # Configure a metric to run. Compute the mean on the final delivered seeing.  Once the mean seeing has been computed everywhere on the sky, compute the RMS as a summary statistic.
-metric = makeMetricConfig('SNMetric', params=['finSeeing'],
+
+metric = makeMetricConfig('SNMetric',kwargs={"solidangle":solidangle}, #,kwargs={"solidangle":solidangle},
                           summaryStats={'RmsMetric':{}})
 
 # Configure a binner.  Use the Healpixbinner to compute the metric at points in the sky.  Set the constraint as an empty string so all data is returned.
-binner = makeBinnerConfig('HealpixBinner',kwargs={"nside":16},  metricDict=makeDict(metric),
+binner = makeBinnerConfig('HealpixBinner',kwargs={"nside":nside},  metricDict=makeDict(metric),
                           constraints=[''])
 
 root.binners = makeDict(binner)

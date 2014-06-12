@@ -43,12 +43,12 @@ The proposed metric for the survey field is
 	\Omega \left(T-(1+z_{max})T_0\right)   \\
 	\times
 	\sum_{\alpha \in Bands}	
-		\left(
-		\frac{\tau(1-e^{-\frac{\delta t}{\tau}})}{\delta t}\right)^{-1}		\left\{
+		\left\{
 			\sum_{i \in visits}		\left[ 		\min{\left(
 				\frac{\SNR_{\alpha,i}^2}{\SNR_{\alpha}^{2} } ,1 \right)}
 				\frac{\tau}{T}	\left(1-e^{-\Delta t_{\alpha,i}/\tau}\right)\right]
-				-a\frac{\Var\left(\min{\left(
+				-a\left(
+		\frac{\tau(1-e^{-\frac{\delta t}{\tau}})}{\delta t}\right)		\frac{\Var\left(\min{\left(
 				\SNR_{\alpha,i},{\SNR_{\alpha} }  \right)}
 				\right)}{\SNR_\alpha^2}
 				\right\}

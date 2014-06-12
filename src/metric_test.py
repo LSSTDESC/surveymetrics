@@ -53,7 +53,7 @@ class TestMetric(unittest.TestCase):
 
         #target SNR
         metric_1 = onemetric.metric(ston1,epoch1)
-        ans=omega*ndata*tau*(1-numpy.exp(-1))/  (tau/dt0*(1-numpy.exp(-dt0/tau)))
+        ans=omega*ndata*tau*(1-numpy.exp(-1))#/  (tau/dt0*(1-numpy.exp(-dt0/tau)))
         self.assertTrue(numpy.abs(ans-metric_1) < tau)
 
         #lower SNR
@@ -70,7 +70,7 @@ class TestMetric(unittest.TestCase):
         t2 =epoch2[-1]-epoch2[0]
         ston2= numpy.random.normal(loc=snr_0/2,scale=1,size=ndata2)
         metric_1 = onemetric.metric(ston2,epoch2)
-        ans=omega*t2*(tau/t2*ndata2/4.*(1-numpy.exp(-1))-a/snr_0**2) / (tau/dt0*(1-numpy.exp(-dt0/tau)))
+        ans=omega*t2*(tau/t2*ndata2/4.*(1-numpy.exp(-1))-a/snr_0**2 * (tau/dt0*(1-numpy.exp(-dt0/tau))))
         self.assertTrue(numpy.abs(ans-metric_1) < 0.02*ans)
 
 
