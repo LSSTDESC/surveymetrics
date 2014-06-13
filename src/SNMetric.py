@@ -15,6 +15,7 @@ class SNMetric(BaseMetric):
         cols=['night','filter','fivesigma_modified']
         super(SNMetric, self).__init__(cols, metricName, **kwargs)
 
+        self.metricDtype = 'float'
         #survey args
         self.filterNames = filterNames
         self.filterTargetMag = filterTargetMag 
@@ -32,13 +33,14 @@ class SNMetric(BaseMetric):
         self.metric_calc=metric.Metric.OneFieldBandMetric(self.Omega,self.zmax,self.snr,self.T0,self.tau,self.dt0,self.a)
 
     def run(self, dataSlice):
-        ans=0
+        ans=0.
         #Figure out the seasons for the pixel
         seasons= SNMetric.splitBySeason(dataSlice,self.T0)
         for s in seasons:
             ans=ans+self.seasonMetric(s, dataSlice)
-        return {'result':ans}
-                               
+        #return {'result':ans}
+        return ans
+                           
     @staticmethod
     def splitBySeason(dataSlice,T0):
         dates= numpy.unique(dataSlice['night'])
