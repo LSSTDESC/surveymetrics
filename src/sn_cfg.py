@@ -25,8 +25,7 @@ solidangle = numpy.asscalar(solidangle)
 
 # Configure a metric to run. Compute the mean on the final delivered seeing.  Once the mean seeing has been computed everywhere on the sky, compute the RMS as a summary statistic.
 
-metric = makeMetricConfig('SNMetric',kwargs={"solidangle":solidangle}, #,kwargs={"solidangle":solidangle},
-                          summaryStats={'RmsMetric':{}})
+metric = makeMetricConfig('SNMetric',summaryStats={'RmsMetric':{}})
 
 # Configure a binner.  Use the Healpixbinner to compute the metric at points in the sky.  Set the constraint as an empty string so all data is returned.
 binner = makeBinnerConfig('HealpixBinner',kwargs={"nside":nside},  metricDict=makeDict(metric),

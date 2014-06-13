@@ -5,30 +5,32 @@ from lsst.sims.maf.metrics.baseMetric import BaseMetric
 
 class SNMetric(BaseMetric):
 
-    def __init__(self, metricName='SNMetric', nightcol='night', filtercol='filter',
-                 m5col='fivesigma_modified', units='', 
-                 T0=30., 
+    def __init__(self, metricName='SNMetric',  filterNames=numpy.array(['u','g','r','i','z','y']),
+                 filterTargetMag= numpy.array([22,22.5,22.5,22.5,22.5,22]),
+                 T0=30., Omega =1., zmax = .5 ,snr=50., tau=4., dt0=28., a=1.,
                  uniqueBlocks=False, **kwargs):
         """
             """
         
-        cols=[nightcol,m5col,filtercol]
-        self.nightcol = nightcol
-        self.m5col = m5col
-        self.filtercol = filtercol
-        super(SNMetric, self).__init__(cols, metricName, units=units, **kwargs)
-        self.filterNames = numpy.array(['u','g','r','i','z','y'])
-        self.filterTargetMag = numpy.array([22,22.5,22.5,22.5,22.5,22]) # temporary need separate for Wide and DD
+        cols=['night','filter','fivesigma_modified']
+        super(SNMetric, self).__init__(cols, metricName, **kwargs)
+
+        #survey args
+        self.filterNames = filterNames
+        self.filterTargetMag = filterTargetMag 
+
+        #metric args
+        # for now these are all scalars though in principle could be filter-dependent
         self.T0=T0
-        self.Omega=1.
-        self.zmax=.5
-        self.snr=20
-        self.tau=4.
-        self.dt0=28.
-        self.a=kwargs['solidangle']
-        print self.a
-        self.metric_calc=metric.Metric.OneFieldBandMetric(self.Omega,self.zmax,self.snr,self.T0,self.tau,self.dt0,self.a)
+        self.Omega=Omega
+        self.zmax=zmax
+        self.snr=snr
+        self.tau=tau
+        self.dt0=dt0
+        self.a=a
         
+        self.metric_calc=metric.Metric.OneFieldBandMetric(self.Omega,self.zmax,self.snr,self.T0,self.tau,self.dt0,self.a)
+
     def run(self, dataSlice):
         ans=0
         #Figure out the seasons for the pixel
@@ -37,7 +39,6 @@ class SNMetric(BaseMetric):
             ans=ans+self.seasonMetric(s, dataSlice)
         return {'result':ans}
                                
-
     @staticmethod
     def splitBySeason(dataSlice,T0):
         dates= numpy.unique(dataSlice['night'])
@@ -51,6 +52,7 @@ class SNMetric(BaseMetric):
         return out
 
     def seasonMetric(self, s, dataSlice):
+
         ans=0
         for filter, targetMag in zip(self.filterNames,self.filterTargetMag):
             night_in=[]
@@ -62,8 +64,12 @@ class SNMetric(BaseMetric):
                     snrs_=5*10**((-targetMag+m5col_)/2.5)
                     snr_=numpy.sqrt(numpy.sum(numpy.power(snrs_,2)))
                     snr_in.append(snr_)
+                    
+            #if a filter is not measured in a season the metric for the season is zero
             if len(night_in) == 0:
                 return 0
+
+            #calculate the metric
             night_in.append(night_in[-1]+self.tau)
             nignt_in=numpy.array(night_in, dtype=numpy.float)
             snr_in=numpy.array(snr_in)
