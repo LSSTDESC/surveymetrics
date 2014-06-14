@@ -1,25 +1,37 @@
 import numpy
 import metric
+import sncosmo
+from astropy import units as u
+from astropy import coordinates as coord
 
 from lsst.sims.maf.metrics.baseMetric import BaseMetric
 
 class SNMetric(BaseMetric):
 
     def __init__(self, metricName='SNMetric',  filterNames=numpy.array(['u','g','r','i','z','y']),
-                 filterTargetMag= numpy.array([22,22.5,22.5,22.5,22.5,22]),
+                 filterTargetMag= numpy.array([22,22.5,22.5,22.5,22.5,22]),filterWave = numpy.array([375.,476.,621.,754.,870.,980.]),
                  T0=30., Omega =1., zmax = .5 ,snr=50., tau=4., dt0=28., a=1.,
                  uniqueBlocks=False, **kwargs):
         """
             """
         
-        cols=['night','filter','fivesigma_modified']
+        cols=['night','filter','fivesigma_modified','fieldRA','fieldDec']
         super(SNMetric, self).__init__(cols, metricName, **kwargs)
 
+        self.longestTolerableGap=15.
+        
         self.metricDtype = 'float'
         #survey args
-        self.filterNames = filterNames
-        self.filterTargetMag = filterTargetMag 
-
+        self.filterinfo=dict()
+        for name, mag, wave in zip(filterNames, filterTargetMag, filterWave):
+            self.filterinfo[name]=dict()
+            self.filterinfo[name]['targetMag']=mag
+            self.filterinfo[name]['wave']=wave
+        
+        #self.filterNames = filterNames
+        #self.filterTargetMag = filterTargetMag 
+        #self.filterWave=filterWave
+        
         #metric args
         # for now these are all scalars though in principle could be filter-dependent
         self.T0=T0
@@ -29,23 +41,23 @@ class SNMetric(BaseMetric):
         self.tau=tau
         self.dt0=dt0
         self.a=a
+
         
         self.metric_calc=metric.Metric.OneFieldBandMetric(self.Omega,self.zmax,self.snr,self.T0,self.tau,self.dt0,self.a)
 
     def run(self, dataSlice):
         ans=0.
         #Figure out the seasons for the pixel
-        seasons= SNMetric.splitBySeason(dataSlice,self.T0)
+        seasons= self.splitBySeason(dataSlice)
         for s in seasons:
             ans=ans+self.seasonMetric(s, dataSlice)
         #return {'result':ans}
         return ans
                            
-    @staticmethod
-    def splitBySeason(dataSlice,T0):
+    def splitBySeason(self,dataSlice):
         dates= numpy.unique(dataSlice['night'])
         gaps = dates - numpy.roll(dates,1)
-        wheretosplit = numpy.where(gaps > T0)[0]
+        wheretosplit = numpy.where(gaps > self.longestTolerableGap)[0]
         wheretosplit= numpy.append(wheretosplit,[0,len(dates)-1])
         wheretosplit=numpy.unique(wheretosplit)
         out=[]
@@ -54,11 +66,11 @@ class SNMetric(BaseMetric):
         return out
 
     def seasonMetric(self, s, dataSlice):
-
         ans=0
-        for filter, targetMag in zip(self.filterNames,self.filterTargetMag):
+        for filter in self.filterinfo.keys():
             night_in=[]
             snr_in=[]
+            targetMag=self.getTargetMag(dataSlice, filter)           
             for night in s:
                 m5col_ = dataSlice['fivesigma_modified'][numpy.logical_and(dataSlice['night']==night,dataSlice['filter'] == filter)]
                 if len(m5col_) > 0:
@@ -77,3 +89,11 @@ class SNMetric(BaseMetric):
             snr_in=numpy.array(snr_in)
             ans= ans +self.metric_calc.metric(snr_in,night_in)
         return ans
+
+    def getTargetMag(self, dataslice, filter):
+# fainten the extragalactic magnitude due to Galactic dust
+#        co = coord.ICRSCoordinates(ra=dataSlice['fieldRA'], dec=dataSlice['fieldDec'], unit=(u.rad, u.rad))
+#        ebv=sncosmo.extinction.get_ebv_from_map(co)
+#        print co, ebv, av
+#        return self.filterinfo[filter]['targetMag']+sncosmo.extinction_ccm(self.filterinfo[filter]['wave']*10, ebv=ebv, r_v=3.1)
+        return self.filterinfo[filter]['targetMag']
