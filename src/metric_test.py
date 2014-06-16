@@ -109,5 +109,13 @@ class TestMetric(unittest.TestCase):
         plt.savefig('fom.eps')
         self.assertTrue(True)
 
+        plt.clf()
+        for i in xrange(len(epoch2)-1):
+            x=numpy.arange(epoch2[i],epoch2[i+1],0.02)
+            plt.fill_between(x,ston2[i]*numpy.exp(-(x-epoch2[i])/4.),numpy.zeros(len(x)))
+        plt.xlabel('date')
+        plt.ylabel('SNR$^2$')
+        plt.savefig('saw.eps')
+
 if __name__ == '__main__':
     unittest.main()

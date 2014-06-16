@@ -42,7 +42,7 @@ class SNMetric(BaseMetric):
         self.dt0=dt0
         self.a=a
 
-        
+        self.ccm=sncosmo.CCM89Dust()
         self.metric_calc=metric.Metric.OneFieldBandMetric(self.Omega,self.zmax,self.snr,self.T0,self.tau,self.dt0,self.a)
 
     def run(self, dataSlice):
@@ -90,10 +90,13 @@ class SNMetric(BaseMetric):
             ans= ans +self.metric_calc.metric(snr_in,night_in)
         return ans
 
-    def getTargetMag(self, dataslice, filter):
-# fainten the extragalactic magnitude due to Galactic dust
-#        co = coord.ICRSCoordinates(ra=dataSlice['fieldRA'], dec=dataSlice['fieldDec'], unit=(u.rad, u.rad))
-#        ebv=sncosmo.extinction.get_ebv_from_map(co)
-#        print co, ebv, av
-#        return self.filterinfo[filter]['targetMag']+sncosmo.extinction_ccm(self.filterinfo[filter]['wave']*10, ebv=ebv, r_v=3.1)
-        return self.filterinfo[filter]['targetMag']
+    def getTargetMag(self, dataSlice, filter):
+    # fainten the extragalactic magnitude due to Galactic dust
+        co = coord.ICRS(ra=dataSlice['fieldRA'][0], dec=dataSlice['fieldDec'][0], unit=(u.rad, u.rad))
+        ebv=sncosmo.get_ebv_from_map(co)
+        self.ccm.set(ebv=ebv)
+        av=-2.5*numpy.log10(self.ccm.propagate(numpy.array([self.filterinfo[filter]['wave']*10]),numpy.array([1])))
+        
+#        print co, ccm.parameters, av
+#        return self.filterinfo[filter]['targetMag']+av
+        return self.filterinfo[filter]['targetMag']+av
