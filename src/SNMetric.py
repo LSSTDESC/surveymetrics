@@ -1,8 +1,10 @@
 import numpy
 import metric
 import sncosmo
+import lsst.sims.photUtils
 from astropy import units as u
 from astropy import coordinates as coord
+import ephem
 
 from lsst.sims.maf.metrics.baseMetric import BaseMetric
 
@@ -43,6 +45,7 @@ class SNMetric(BaseMetric):
         self.a=a
 
         self.ccm=sncosmo.CCM89Dust()
+        self.map = lsst.sims.photUtils.EBV.EbvMap()
         self.metric_calc=metric.Metric.OneFieldBandMetric(self.Omega,self.zmax,self.snr,self.T0,self.tau,self.dt0,self.a)
 
     def run(self, dataSlice):
@@ -92,8 +95,12 @@ class SNMetric(BaseMetric):
 
     def getTargetMag(self, dataSlice, filter):
     # fainten the extragalactic magnitude due to Galactic dust
-        co = coord.ICRS(ra=dataSlice['fieldRA'][0], dec=dataSlice['fieldDec'][0], unit=(u.rad, u.rad))
-        ebv=sncosmo.get_ebv_from_map(co)
+        dec=numpy.maximum(dataSlice['fieldDec'][0],-numpy.pi/2)
+        co = coord.ICRS(ra=dataSlice['fieldRA'][0], dec=dec, unit=(u.rad, u.rad))
+        ebv=sncosmo.get_ebv_from_map(co, cache=True)
+        #np=ephem.Equatorial(dataSlice['fieldRA'][0],dataSlice['fieldDec'][0])
+        #g=ephem.Galactic(np)
+        #ebv=map.generateEbv(g.lon,g.lat)
         self.ccm.set(ebv=ebv)
         av=-2.5*numpy.log10(self.ccm.propagate(numpy.array([self.filterinfo[filter]['wave']*10]),numpy.array([1])))
         

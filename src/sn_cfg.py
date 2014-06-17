@@ -17,6 +17,7 @@ root.dbAddress = {'dbAddress':'sqlite:////Users/akim/Downloads/opsimblitz2_1060_
 root.opsimName = 'SNMetric'
 
 nside=16
+nside=64
 
 import healpy
 solidangle = healpy.nside2pixarea(nside, degrees=True)
