@@ -1,4 +1,4 @@
-snsurveymetric
+surveymetrics
 ==============
 
-Metric for supernova surveys
+Metrics for surveys
