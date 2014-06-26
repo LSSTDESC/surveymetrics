@@ -1,4 +1,6 @@
 *.py[cod]
+*.dvi
+*.ps
 *.log
 *.aux
 *.pdf
