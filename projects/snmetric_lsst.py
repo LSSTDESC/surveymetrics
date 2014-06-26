@@ -8,9 +8,9 @@ import ephem
 
 from lsst.sims.maf.metrics.baseMetric import BaseMetric
 
-class SNMetric(BaseMetric):
+class snmetric_lsst(BaseMetric):
 
-    def __init__(self, metricName='SNMetric',  filterNames=numpy.array(['u','g','r','i','z','y']),
+    def __init__(self, metricName='snmetric_lsst',  filterNames=numpy.array(['u','g','r','i','z','y']),
                  filterTargetMag= numpy.array([22,22.5,22.5,22.5,22.5,22]),filterWave = numpy.array([375.,476.,621.,754.,870.,980.]),
                  T0=30., Omega =1., zmax = .5 ,snr=50., tau=4., dt0=28., a=1.,
                  uniqueBlocks=False, **kwargs):
@@ -18,7 +18,7 @@ class SNMetric(BaseMetric):
             """
         
         cols=['night','filter','fivesigma_modified','fieldRA','fieldDec']
-        super(SNMetric, self).__init__(cols, metricName, **kwargs)
+        super(snmetric_lsst, self).__init__(cols, metricName, **kwargs)
 
         self.longestTolerableGap=15.
         
@@ -97,7 +97,7 @@ class SNMetric(BaseMetric):
     # fainten the extragalactic magnitude due to Galactic dust
         dec=numpy.maximum(dataSlice['fieldDec'][0],-numpy.pi/2)
         co = coord.ICRS(ra=dataSlice['fieldRA'][0], dec=dec, unit=(u.rad, u.rad))
-        ebv=sncosmo.get_ebv_from_map(co, cache=True)
+        ebv=sncosmo.get_ebv_from_map(co, mapdir='../data',cache=True)
         #np=ephem.Equatorial(dataSlice['fieldRA'][0],dataSlice['fieldDec'][0])
         #g=ephem.Galactic(np)
         #ebv=map.generateEbv(g.lon,g.lat)
