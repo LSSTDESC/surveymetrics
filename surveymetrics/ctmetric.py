@@ -53,62 +53,137 @@ def roots(f, a, b, band, eps=1e-6):
             break
     return ans
 
-#f=lambda x, y:x*numpy.cos(x-4) +1
-#print roots(f, -3, 3, 'b')
+class Interval:
+    def __init__(self,a,b):
+        self.start=a
+        self.end=b
 
-#wefew
-class CTMetric:
+    def sum(self,x):
+        return Interval(self.start+x,self.end+x)
 
-    def __init__(self):
+    def length(self):
+        return self.end-self.start
 
+    def __str__(self):
+        return '[{}, {}]\n'.format(self.start,self.end)
+        
+class Intervals:
+    def __init__(self,interval_list):
+        self.intervals=[]
+        if len(interval_list) > 0:
+            self.union(interval_list)
+
+    def __str__(self):
+        out = '['
+        first = True
+        for i in self.intervals:
+            if first:
+                comma=''
+                first = False
+            else:
+                comma=','
+            out = out+'{} [{}, {}]'.format(comma, i.start,i.end)
+        out= out + ']\n'
+        return out
+
+    def union(self,interval_list):
+        allIntervals=[]
+        if len(self.intervals) > 0:
+            allIntervals.extend(self.intervals)
+        if len(interval_list) > 0:
+            allIntervals.extend(interval_list)
+        if len(allIntervals) > 0:
+            allIntervals.sort(key = lambda self: self.start)
+            y=[ allIntervals[0] ]
+            for x in allIntervals[1:]:
+                if y[-1].end < x.start:
+                    y.append(x)
+                else:
+                    y[-1].end = max(y[-1].end,x.end)
+            self.intervals=y
+
+    def sum(self, x):
+        inter_=[]
+        for i in self.intervals:
+            inter_.append(i.sum(x))
+        return Intervals(inter_)
+        
+    def length(self):
+        ans=0
+        for i in self.intervals:
+            ans=ans+i.length()
+        return ans
+
+class ControlTimeMetric:
+
+    def __init__(self,limmags, dates, bands, in_f,trange):
+
+        self.magPrecision=0.01
+        
         # the function
-        self.in_f = lambda x, y :x*numpy.cos(x-4)
-
-        self.trange=numpy.array([0,10]) # range of applicability of the function
+        self.in_f = in_f
+        self.trange=trange
     
-        self.limmags = numpy.array([-3,-1,1,3])
-        self.dates = numpy.array([1,3,7,8])
-        self.bands = ['r','r','r','r']
+        self.limmags = limmags
+        self.dates = dates
+        self.bands =bands
 
-        x_plt=numpy.arange(self.trange[0],self.trange[1],0.01)
+        self.ranges=dict()
+
+        self.calcRanges()
+        
+        #self.cutePlot()
+
+    def calcControlTime(self):
+        ans=0
+        intervals=Intervals([])
+        for l,b,d in zip(self.limmags,self.bands,self.dates):
+            range= self.ranges[(numpy.round(l/self.magPrecision),b)]
+            intervals.union(range.sum(-d).intervals)
+        return intervals.length()
+    
+    def calcRanges(self):
         for l,b in zip(self.limmags,self.bands):
-            ranges = self.getNoDetectionRange(l,b)
-            plt.plot(x_plt,self.in_f(x_plt,'r'))
-            for range in ranges:
-                plt.plot(range,numpy.array([l,l]))
-            plt.show()
+            if (numpy.round(l/self.magPrecision),b) not in self.ranges:
+                self.ranges[(numpy.round(l/self.magPrecision),b)]=self.getDetectionRange(l,b)
+        
+
+    def cutePlot(self):       
+        x_plt=numpy.arange(self.trange[0],self.trange[1],0.01)
+        plt.plot(x_plt,self.in_f(x_plt,'r'))
+        for l,b, i in zip(self.limmags,self.bands,numpy.linspace(0,1, len(self.limmags))):
+            intervals = self.ranges[(numpy.round(l/self.magPrecision),b)]
+            for interval in intervals.intervals:
+                plt.plot(numpy.array([interval.start,interval.end]),numpy.array([l,l]),color=plt.cm.RdYlBu(i))
+        plt.show()
 
         
-    def getNoDetectionRange(self, limmag, band):
+    def getDetectionRange(self, limmag, band):
         f = lambda x, y : self.in_f(x,y)-limmag
-
-        #print self.in_f(2,'r')
-        #print f(2,'r')
 
         root=roots(f, self.trange[0], self.trange[1],band, eps=1e-2)
         if len(root) == 0:
-            #check to see if the function is fainter than lim mag
-            if f(numpy.sum(trange)/2,band) > 0:
-                #if so the entire range is not detected
-                return trange
+            #check to see if the function is brighter than lim mag
+            if f(numpy.sum(self.trange)/2,band) <= 0:
+                #if so the entire range is detected
+                return Intervals([Interval(self.trange[0], self.trange[1])])
             else:
-                return None
+                return Intervals([])
 
         root = numpy.append(root,self.trange)
         root = numpy.unique(root)
 
-        #check to see if the first interval is fainter than limiting mag
-        if f(numpy.sum(root[0:1])/2,band) > 0:
+        #check to see if the first interval is brighter than limiting mag
+        #print root[0], root[1], numpy.sum(root[0:2])/2, self.in_f(numpy.sum(root[0:2])/2,'r'), limmag,f(numpy.sum(root[0:1])/2,band)
+        if f(numpy.sum(root[0:2])/2,band) <= 0:
             #if so the first range should be returned
             firstindex=0
         else:
             firstindex=1
+        lastindex  = firstindex+ 2*((len(root)-firstindex)/2)
 
         ans = []
-
-        for ind in xrange(firstindex,len(root),2):
-            ans.append(numpy.array([root[ind],root[ind+1]]))
-            #print ans[-1]
-        return ans
-
-shit = CTMetric()
+        for ind in xrange(firstindex,lastindex,2):
+            ans.append(Interval(root[ind],root[ind+1]))
+        
+        return Intervals(ans)
