@@ -1,8 +1,51 @@
-#!/usr/bin/env python
+""" Control Time Calculation
+
+Summary
+-------
+This module is used to calculate the control time for a source with
+input observer light curve given the limiting detection magnitudes for
+a series of observations.  The control time is the time duration over
+which a new occurance of a transient will be detected.
+
+Given a limiting magnitude the phases at which the input light curve
+can be detected are determined.  When associated with a date of
+observation, the phases translate to starting dates of transients that
+can be detected.  The union of these dates for all observations is
+used to calculate the control time.
+
+The phases at which the input light curve can be detected is
+determined through finding roots.  This is done through the three
+functions _rootsearch, _bisect, and _roots.  The use of a standard
+package may produce more robust and faster root finding.  A failure
+mode is the algorithm not finding all the roots.  Performance could be
+enhanced for certain functional forms of the light curves that allow
+analytic determination of roots.
+
+The class _Interval is used to contain a single phase and time
+interval.  The class _Intervals is used to contain sets of _Intervals
+that are non-overlapping.
+
+Each filter/limiting magnitude pair has its own corresponding
+discovery phases.  In a large survey, the limiting magnitudes of the
+observations can be very similar.  In order to save compute time, the
+code uses previously-computed discovery phases from another limiting
+magnitude within a user-controlled precision.  The class
+ControlTimeMetric is designed for the calculation of control times for
+a single set of light curves.  It chaches discovery phases.  The
+method ControlTimeMetric.calcControlTime calculates or retrieves
+discovery phases for a set of input observations and returns the
+control time.
+
+The implementation is set up to be efficient by having one ControlTimeMetric object per input
+light curve.  That one object calculates the control time for
+different surveys.
+
+"""
+
 import numpy
 import matplotlib.pyplot as plt
 
-def rootsearch(f,a,b, band, dx):
+def _rootsearch(f,a,b, band, dx):
     x1 = a; f1 = f(a, band)
     x2 = a + dx; f2 = f(x2, band)
     while f1*f2 > 0.0:
@@ -12,7 +55,7 @@ def rootsearch(f,a,b, band, dx):
         x2 = x1 + dx; f2 = f(x2, band)
     return x1,x2
 
-def bisect(f,x1,x2,band,switch=0,epsilon=1.0e-9):
+def _bisect(f,x1,x2,band,switch=0,epsilon=1.0e-9):
     f1 = f(x1,band)
     if f1 == 0.0:
         return x1
@@ -37,29 +80,26 @@ def bisect(f,x1,x2,band,switch=0,epsilon=1.0e-9):
             f2 = f3
     return (x1 + x2)/2.0
 
-def roots(f, a, b, band, eps=1e-6):
-    #print ('The roots on the interval [%f, %f] are:' % (a,b))
+def _roots(f, a, b, band, eps=1e-6):
     ans=[]
     while 1:
-        x1,x2 = rootsearch(f,a,b,band, eps)
+        x1,x2 = _rootsearch(f,a,b,band, eps)
         if x1 != None:
             a = x2
-            root = bisect(f,x1,x2,band, 1)
+            root = _bisect(f,x1,x2,band, 1)
             if root != None:
                 ans.append(root)
-                #print (round(root,-int(math.log(eps, 10))))
         else:
-            #print ('\nDone')
             break
     return ans
 
-class Interval:
+class _Interval:
     def __init__(self,a,b):
         self.start=a
         self.end=b
 
     def sum(self,x):
-        return Interval(self.start+x,self.end+x)
+        return _Interval(self.start+x,self.end+x)
 
     def length(self):
         return self.end-self.start
@@ -67,7 +107,7 @@ class Interval:
     def __str__(self):
         return '[{}, {}]\n'.format(self.start,self.end)
         
-class Intervals:
+class _Intervals:
     def __init__(self,interval_list):
         self.intervals=[]
         if len(interval_list) > 0:
@@ -106,7 +146,7 @@ class Intervals:
         inter_=[]
         for i in self.intervals:
             inter_.append(i.sum(x))
-        return Intervals(inter_)
+        return _Intervals(inter_)
         
     def length(self):
         ans=0
@@ -116,42 +156,37 @@ class Intervals:
 
 class ControlTimeMetric:
 
-    def __init__(self,limmags, dates, bands, in_f,trange):
+    """ blah blah
+    """
+    def __init__(self, in_f,trange, magPrecision=0.01):
 
-        self.magPrecision=0.01
+        self.magPrecision=magPrecision
+        self.ranges=dict()
         
-        # the function
+        # the function and range
         self.in_f = in_f
         self.trange=trange
-    
-        self.limmags = limmags
-        self.dates = dates
-        self.bands =bands
 
-        self.ranges=dict()
+    def calcControlTime(self, limmags, dates, bands):
 
-        self.calcRanges()
-        
-        #self.cutePlot()
-
-    def calcControlTime(self):
+        self._calcRanges(limmags, bands)
         ans=0
-        intervals=Intervals([])
-        for l,b,d in zip(self.limmags,self.bands,self.dates):
+        intervals=_Intervals([])
+        for l,b,d in zip(limmags,bands,dates):
             range= self.ranges[(numpy.round(l/self.magPrecision),b)]
             intervals.union(range.sum(-d).intervals)
         return intervals.length()
     
-    def calcRanges(self):
-        for l,b in zip(self.limmags,self.bands):
+    def _calcRanges(self, limmags, bands):
+        for l,b in zip(limmags,bands):
             if (numpy.round(l/self.magPrecision),b) not in self.ranges:
                 self.ranges[(numpy.round(l/self.magPrecision),b)]=self.getDetectionRange(l,b)
         
 
-    def cutePlot(self):       
+    def cutePlot(self, limmags, bands):       
         x_plt=numpy.arange(self.trange[0],self.trange[1],0.01)
         plt.plot(x_plt,self.in_f(x_plt,'r'))
-        for l,b, i in zip(self.limmags,self.bands,numpy.linspace(0,1, len(self.limmags))):
+        for l,b, i in zip(limmags,bands,numpy.linspace(0,1, len(limmags))):
             intervals = self.ranges[(numpy.round(l/self.magPrecision),b)]
             for interval in intervals.intervals:
                 plt.plot(numpy.array([interval.start,interval.end]),numpy.array([l,l]),color=plt.cm.RdYlBu(i))
@@ -161,20 +196,19 @@ class ControlTimeMetric:
     def getDetectionRange(self, limmag, band):
         f = lambda x, y : self.in_f(x,y)-limmag
 
-        root=roots(f, self.trange[0], self.trange[1],band, eps=1e-2)
+        root=_roots(f, self.trange[0], self.trange[1],band, eps=1e-2)
         if len(root) == 0:
             #check to see if the function is brighter than lim mag
             if f(numpy.sum(self.trange)/2,band) <= 0:
                 #if so the entire range is detected
-                return Intervals([Interval(self.trange[0], self.trange[1])])
+                return _Intervals([_Interval(self.trange[0], self.trange[1])])
             else:
-                return Intervals([])
+                return _Intervals([])
 
         root = numpy.append(root,self.trange)
         root = numpy.unique(root)
 
         #check to see if the first interval is brighter than limiting mag
-        #print root[0], root[1], numpy.sum(root[0:2])/2, self.in_f(numpy.sum(root[0:2])/2,'r'), limmag,f(numpy.sum(root[0:1])/2,band)
         if f(numpy.sum(root[0:2])/2,band) <= 0:
             #if so the first range should be returned
             firstindex=0
@@ -184,6 +218,6 @@ class ControlTimeMetric:
 
         ans = []
         for ind in xrange(firstindex,lastindex,2):
-            ans.append(Interval(root[ind],root[ind+1]))
+            ans.append(_Interval(root[ind],root[ind+1]))
         
-        return Intervals(ans)
+        return _Intervals(ans)
