@@ -156,19 +156,51 @@ class _Intervals:
 
 class ControlTimeMetric:
 
-    """ blah blah
-    """
-    def __init__(self, in_f,trange, magPrecision=0.01):
+    """ Class that manages the calculation of the control time for an
+    input obsever light curve.
 
+    Parameters
+    ----------
+    function : function
+       Observed light curve. A function of two variables phase and band.
+    range : `~numpy.ndarray`
+       A two element array giving the range of applicability of the
+    function.
+    magPrecision : float, optional
+       Precision at which detection ranges for limiting magnitudes are given the
+       same discovery phases.
+    """
+    def __init__(self, function ,range, magPrecision=0.01):
+        
         self.magPrecision=magPrecision
         self.ranges=dict()
         
         # the function and range
-        self.in_f = in_f
-        self.trange=trange
+        self.in_f = function
+        self.trange=range
 
     def calcControlTime(self, limmags, dates, bands):
+        """ Method that returns the control time given properties of the observations.
 
+        Parameters
+        ----------
+        limmags : `~numpy.ndarray`
+          Limiting magnitude for detection of the observations, with the
+            units output by the function given in the constructor.
+        dates : `~numpy.ndarray`
+          Dates of observations, with the units expected by the function
+            given in the constructor.
+        bands : list
+         Bands of observations, consistent with those expected by the function
+            given in the constructor.
+
+        Returns
+        --------
+
+        `~numpy.float`
+          Control time
+        """
+        
         self._calcRanges(limmags, bands)
         ans=0
         intervals=_Intervals([])
