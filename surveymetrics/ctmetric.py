@@ -213,7 +213,6 @@ class ControlTimeMetric:
         >>> #instantiate the object for this light curve
         ... 
         >>> metric=surveymetrics.ctmetric.ControlTimeMetric(fn,numpy.array([-.5,1.5]))
-        >>> metric=surveymetrics.ctmetric.ControlTimeMetric(fn,numpy.array([-.5,1.5]))
         >>> #calculate control times for different sets of observations
         ... 
         >>> metric.calcControlTime(numpy.array([1., 1.]),numpy.array([0.,.5]),['r','r'])
