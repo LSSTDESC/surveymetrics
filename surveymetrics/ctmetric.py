@@ -199,6 +199,29 @@ class ControlTimeMetric:
 
         `~numpy.float`
           Control time
+
+        Examples
+        --------
+        Calculate the control time for a top-hat light curve
+
+        >>> import numpy
+        >>> import surveymetrics.ctmetric
+        >>> #the top-hat light curve
+        >>> def fn(x,c):
+        ...     return 100.* ((x<0.) | (x>1.))
+        ... 
+        >>> #instantiate the object for this light curve
+        ... 
+        >>> metric=surveymetrics.ctmetric.ControlTimeMetric(fn,numpy.array([-.5,1.5]))
+        >>> metric=surveymetrics.ctmetric.ControlTimeMetric(fn,numpy.array([-.5,1.5]))
+        >>> #calculate control times for different sets of observations
+        ... 
+        >>> metric.calcControlTime(numpy.array([1., 1.]),numpy.array([0.,.5]),['r','r'])
+        1.5000000000000007
+        >>> metric.calcControlTime(numpy.array([1.]),numpy.array([0.]),['r'])
+        1.0000000000000007
+        >>> metric.calcControlTime(numpy.array([1., 1.]),numpy.array([0.,10]),['r','r'])
+        2.0000000000000009
         """
         
         self._calcRanges(limmags, bands)
