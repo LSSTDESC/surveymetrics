@@ -6,23 +6,24 @@ import lsst.sims.photUtils
 from astropy import units as u
 from astropy import coordinates as coord
 import ephem
+import importlib
 
 from lsst.sims.maf.metrics.baseMetric import BaseMetric
 
 class ctmetric_lsst(BaseMetric):
-
-    def __init__(self, function, range, metricName='ctmetric_lsst', magPrecision=0.01,
+    
+    def __init__(self,  metricName='ctmetric_lsst', magPrecision=0.01,
                  limitingsnr=5.,
                  uniqueBlocks=False, **kwargs):
         """
             """
+        super(ctmetric_lsst, self).__init__(cols, metricName, **kwargs)
 
         self.metriccache=dict()
         self.ebvprecision=100.
         self.limitingsnr=limitingsnr
         
         cols=['mjd','filter','fivesigma_modified','fieldRA','fieldDec']
-        super(snmetric_lsst, self).__init__(cols, metricName, **kwargs)
        
         self.metricDtype = 'float'
         
@@ -30,15 +31,20 @@ class ctmetric_lsst(BaseMetric):
         self.filterinfo=lsst.LSST.filterinfo
         
         #metric args
-        self.function=function
-        self.range = range
         self.magPrecision=magPrecision
 
         self.ccm=sncosmo.CCM89Dust()
         self.map = lsst.sims.photUtils.EBV.EbvMap()
-        self.metric_calc=surveymetrics.ctmetric.ControlTimeMetric(self.function,self.range,magPrecision=self.magPrecision)
 
-    def run(self, dataSlice):
+        module_name, class_name = kwargs['lc.class'].split(".")
+        somemodule = importlib.import_module(module_name)
+        
+        self.lightcurve =getattr(somemodule, class_name)(kwargs)
+        
+        self.metric_calc=surveymetrics.ctmetric.ControlTimeMetric(self.lightcurve.mag,self.lightcurve.trange,magPrecision=self.magPrecision)
+
+
+    def run(self, dataSlice, slicePoint=None):
         ans=0.
         #Figure out the seasons for the pixel
         seasons= self.splitBySeason(dataSlice)

@@ -6,7 +6,7 @@
 #  start with 'root.' are passed on to the driver script.
 
 # Import MAF helper functions 
-from lsst.sims.maf.driver.mafConfig import makeBinnerConfig, makeMetricConfig, makeDict
+from lsst.sims.maf.driver.mafConfig import configureSlicer, configureMetric, makeDict
 
 # Set the output directory
 root.outputDir = './ctmetric_lsst_out'
@@ -16,7 +16,9 @@ root.dbAddress = {'dbAddress':'sqlite:////Users/akim/Downloads/opsimblitz2_1060_
 # Name of this run (filename base)
 root.opsimName = 'ctmetric_lsst'
 
-nside=8
+root.modules = ['projects.ctmetric_lsst']
+
+nside=4
 
 import healpy
 solidangle = healpy.nside2pixarea(nside, degrees=True)
@@ -24,22 +26,14 @@ import numpy
 solidangle = numpy.asscalar(solidangle)
 
 # supernova light curve
-import sncosmo
-z=0.3
-model = sncosmo.Model(source='hsiao')
-model.set(z=z, t0=55000., amplitude=3.e-10)
-trange = numpy.array([55000., 55365.])
-
-def fn(x,y):
-    band={'u': 'sdssu', 'g': 'desg', 'r': 'desr', 'i': 'desz', 'y': 'desy'}
-    return model.bandmag(band[y],'ab', x)
+kwargs = {'lc.class':'projects.snlightcurve.SNLightCurve','lc.z':0.3, 'lc.source': 'lc.hsiao','lc.tmin':55000.,'lc.tmax':55360, 'lc.amplitude':3e-10}
 
 # Configure a metric to run. Compute the mean on the final delivered seeing.  Once the mean seeing has been computed everywhere on the sky, compute the RMS as a summary statistic.
 
-metric = makeMetricConfig('ctmetric_lsst',params=[fn,trange],summaryStats={'RmsMetric':{}})
+metric = configureMetric('projects.ctmetric_lsst.ctmetric_lsst',kwargs=kwargs,summaryStats={'RmsMetric':{}})
 
 # Configure a binner.  Use the Healpixbinner to compute the metric at points in the sky.  Set the constraint as an empty string so all data is returned.
-binner = makeBinnerConfig('HealpixBinner',kwargs={"nside":nside},  metricDict=makeDict(metric),
+binner = configureSlicer('HealpixSlicer',kwargs={"nside":nside},  metricDict=makeDict(metric),
                           constraints=[''])
 
-root.binners = makeDict(binner)
+root.slicers = makeDict(binner)
