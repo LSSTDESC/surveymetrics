@@ -7,6 +7,7 @@ from astropy import units as u
 from astropy import coordinates as coord
 import ephem
 import importlib
+import string
 
 from lsst.sims.maf.metrics.baseMetric import BaseMetric
 
@@ -17,18 +18,19 @@ class ctmetric_lsst(BaseMetric):
                  uniqueBlocks=False, **kwargs):
         """
             """
+        cols=['expMJD','filter','fivesigma_modified','fieldRA','fieldDec']
+
         super(ctmetric_lsst, self).__init__(cols, metricName, **kwargs)
 
         self.metriccache=dict()
         self.ebvprecision=100.
         self.limitingsnr=limitingsnr
         
-        cols=['mjd','filter','fivesigma_modified','fieldRA','fieldDec']
        
         self.metricDtype = 'float'
         
         #survey args
-        self.filterinfo=lsst.LSST.filterinfo
+        self.filterinfo=lsst_info.LSST.filterinfo
         
         #metric args
         self.magPrecision=magPrecision
@@ -36,32 +38,27 @@ class ctmetric_lsst(BaseMetric):
         self.ccm=sncosmo.CCM89Dust()
         self.map = lsst.sims.photUtils.EBV.EbvMap()
 
-        module_name, class_name = kwargs['lc.class'].split(".")
+        dotlocation = string.rfind(kwargs['lc.class'],'.')
+        module_name = kwargs['lc.class'][0:dotlocation]
+        class_name = kwargs['lc.class'][dotlocation+1:]
         somemodule = importlib.import_module(module_name)
         
-        self.lightcurve =getattr(somemodule, class_name)(kwargs)
+        self.lightcurve =getattr(somemodule, class_name)(**kwargs)
         
         self.metric_calc=surveymetrics.ctmetric.ControlTimeMetric(self.lightcurve.mag,self.lightcurve.trange,magPrecision=self.magPrecision)
-
-
-    def run(self, dataSlice, slicePoint=None):
-        ans=0.
-        #Figure out the seasons for the pixel
-        seasons= self.splitBySeason(dataSlice)
-        for s in seasons:
-            ans=ans+self.seasonMetric(s, dataSlice)
-        #return {'result':ans}
-        return ans
                            
 
-    def run(self, dataSlice):
+    def run(self, dataSlice, slicePoint=None):
        #get ebv of this slice
-        dec=numpy.maximum(dataSlice['fieldDec'][0],-numpy.pi/2)
-        co = coord.ICRS(ra=dataSlice['fieldRA'][0], dec=dec, unit=(u.rad, u.rad))
+#        dec=numpy.maximum(dataSlice['fieldDec'][0],-numpy.pi/2)
+#        co = coord.ICRS(ra=dataSlice['fieldRA'][0], dec=dec, unit=(u.rad, u.rad))
+
+        co = coord.ICRS(ra=slicePoint['ra'], dec=slicePoint['dec'], unit=(u.rad, u.rad))
+        
         ebv=sncosmo.get_ebv_from_map(co, mapdir='../data',cache=True)
 
         #check to see of metric is already available for this ebv
-        label=round(ebv/ebvprecision)
+        label=round(ebv/self.ebvprecision)
         if label in self.metriccache:
             #if so use it
             metric = self.metriccache[label]
