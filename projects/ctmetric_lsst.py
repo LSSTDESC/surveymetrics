@@ -18,12 +18,12 @@ class ctmetric_lsst(BaseMetric):
                  uniqueBlocks=False, **kwargs):
         """
             """
-        cols=['expMJD','filter','fivesigma_modified','fieldRA','fieldDec']
+        cols=['expMJD','filter','fivesigma_modified'] #,'fieldRA','fieldDec']
 
         super(ctmetric_lsst, self).__init__(cols, metricName, **kwargs)
 
         self.metriccache=dict()
-        self.ebvprecision=100.
+        self.ebvprecision=10.
         self.limitingsnr=limitingsnr
         
        
@@ -44,8 +44,6 @@ class ctmetric_lsst(BaseMetric):
         somemodule = importlib.import_module(module_name)
         
         self.lightcurve =getattr(somemodule, class_name)(**kwargs)
-        
-        self.metric_calc=surveymetrics.ctmetric.ControlTimeMetric(self.lightcurve.mag,self.lightcurve.trange,magPrecision=self.magPrecision)
                            
 
     def run(self, dataSlice, slicePoint=None):
@@ -55,8 +53,9 @@ class ctmetric_lsst(BaseMetric):
 
         co = coord.ICRS(ra=slicePoint['ra'], dec=slicePoint['dec'], unit=(u.rad, u.rad))
         
-        ebv=sncosmo.get_ebv_from_map(co, mapdir='../data',cache=True)
-
+#        ebv=sncosmo.get_ebv_from_map(co, mapdir='../data',cache=True)
+        ebv=0.
+        
         #check to see of metric is already available for this ebv
         label=round(ebv/self.ebvprecision)
         if label in self.metriccache:
@@ -64,16 +63,17 @@ class ctmetric_lsst(BaseMetric):
             metric = self.metriccache[label]
         else:
             #if not create it
+            fn = lambda x,y: self.lightcurve.mag(x,y)
+            
             ##### To fix with magnitude later
-            fn = lambda x, y : self.function(x,y)
-            metric = surveymetric.ctmetric.ControlTimeMetric(fn ,self.range, self.magPrecision)
+            metric = surveymetrics.ctmetric.ControlTimeMetric(fn,self.lightcurve.trange,magPrecision=self.magPrecision)
             self.metriccache[label]=metric
 
         #convert limiting magnitude to threshold assuming sky limit
         m5col_ = dataSlice['fivesigma_modified']
         mtarget = m5col_-2.5*numpy.log10(self.limitingsnr/5.)
-        mjds = dataSlice['mjd']
-        bands= dataSlice['bands']
+        mjds = dataSlice['expMJD']
+        bands= dataSlice['filter']
 
         #calculate
-        return metric.calcControlTime(mtarget, dates, bands)
+        return metric.calcControlTime(mtarget, mjds, bands)

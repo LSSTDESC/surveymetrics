@@ -3,9 +3,25 @@ import numpy
 import unittest
 import surveymetrics.ctmetric
 import matplotlib.pyplot as plt
+import sncosmo
+from astropy.cosmology import WMAP9 as cosmo
+
 
 class TestMetric(unittest.TestCase):
 
+    def test_sn(self):
+        z=0.1
+        model = sncosmo.Model(source='salt2-extended')
+        model.set(z=z, t0=55000.)
+        band = sncosmo.get_bandpass('desg')
+        model.set_source_peakabsmag(-19.3,band,'ab')
+
+        def fn(x,y):
+            return model.bandmag(y,'ab', x)
+
+        metric=surveymetrics.ctmetric.ControlTimeMetric(fn,numpy.array([55000.,55010]))
+
+        print metric.calcControlTime(numpy.array([20., 20.]),numpy.array([0.,10]),['desr','desr'])
         
     def test_0(self):
 
