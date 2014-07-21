@@ -66,7 +66,7 @@ class ctmetric_lsst(BaseMetric):
             fn = lambda x,y: self.lightcurve.mag(x,y)
             
             ##### To fix with magnitude later
-            metric = surveymetrics.ctmetric.ControlTimeMetric(fn,self.lightcurve.trange,magPrecision=self.magPrecision)
+            metric = surveymetrics.ctmetric.ControlTimeMetric(fn,self.lightcurve.trange(),magPrecision=self.magPrecision)
             self.metriccache[label]=metric
 
         #convert limiting magnitude to threshold assuming sky limit

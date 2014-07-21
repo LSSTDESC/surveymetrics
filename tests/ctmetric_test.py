@@ -9,12 +9,21 @@ from astropy.cosmology import WMAP9 as cosmo
 
 class TestMetric(unittest.TestCase):
 
+    def test_quad(self):
+
+        def fn(x,y):
+            return 25-5*numpy.log10(x)
+
+        metric=surveymetrics.ctmetric.ControlTimeMetric(fn,numpy.array([1e-8,10]))
+
+        self.assertTrue(numpy.abs(metric.calcControlTime(numpy.array([21.50515, 21.50515]),numpy.array([0.,10]),['desr','desr'])-10) < 1e-3)
+   
     def test_sn(self):
         z=0.1
         model = sncosmo.Model(source='salt2-extended')
         model.set(z=z, t0=55000.)
-        band = sncosmo.get_bandpass('desg')
-        model.set_source_peakabsmag(-19.3,band,'ab')
+        #band = sncosmo.get_bandpass('desg')
+        model.set_source_peakabsmag(-19.3,'desg','ab')
 
         def fn(x,y):
             return model.bandmag(y,'ab', x)

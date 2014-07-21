@@ -19,7 +19,7 @@ root.opsimName = 'ctmetric_lsst'
 
 root.modules = ['projects.ctmetric_lsst']
 
-nside=4
+nside=16
 
 #import healpy
 #solidangle = healpy.nside2pixarea(nside, degrees=True)
@@ -27,7 +27,7 @@ nside=4
 #solidangle = numpy.asscalar(solidangle)
 
 # supernova light curve
-kwargs = {'lc.class':'projects.snlightcurve.SNLightCurve','lc.z':0.3, 'lc.source': 'hsiao','lc.tmin':55000.,'lc.tmax':55010, 'lc.amplitude':3e-10, 'magPrecision':0.05}
+kwargs = {'lc.class':'projects.snlightcurve.SNLightCurve','lc.z':0.3, 'lc.source': 'hsiao','lc.tmin':1e-8,'lc.tmax':10*(1+.3), 'magPrecision':0.05}
 
 # Configure a metric to run. Compute the mean on the final delivered seeing.  Once the mean seeing has been computed everywhere on the sky, compute the RMS as a summary statistic.
 

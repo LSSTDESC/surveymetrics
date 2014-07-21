@@ -249,7 +249,6 @@ class ControlTimeMetric:
         
     def getDetectionRange(self, limmag, band):
         f = lambda x, y : self.in_f(x,y)-limmag
-
         root=_roots(f, self.trange[0], self.trange[1],band, eps=1e-2)
         if len(root) == 0:
             #check to see if the function is brighter than lim mag
