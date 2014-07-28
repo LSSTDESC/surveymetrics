@@ -25,7 +25,7 @@ class ctmetric_lsst(BaseMetric):
         super(ctmetric_lsst, self).__init__(cols, metricName)
 
         self.metriccache=dict()
-        self.ebvprecision=10.
+        self.ebvprecision=0.01
         self.limitingsnr=limitingsnr
         
         self.ccm=sncosmo.CCM89Dust()
@@ -62,10 +62,11 @@ class ctmetric_lsst(BaseMetric):
         label=round(ebv/self.ebvprecision)
         if label in self.metriccache:
             #if so use it
+            print 'using old', ebv, label
             metric = self.metriccache[label]
         else:
             #if not create it
-
+            print 'making new ', ebv, label
             #make outside Milky Way mag into dusted magnitude
             ccm=sncosmo.CCM89Dust()
             ccm.set(ebv=ebv)
