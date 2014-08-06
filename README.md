@@ -6,8 +6,7 @@ suitability for dark energy measurement.
 
 ### Getting started
 
-    import surveymetrics as desc
-    desc.SNmetric()
+    python setup.py install
 
 ### Authors
 
