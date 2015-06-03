@@ -7,5 +7,5 @@ setup(name='surveymetrics',
       author='Alex Kim',
       author_email='agkim@lbl.gov',
       packages=['surveymetrics', 'projects'],
-      scripts=['projects/snmetric_des']
+      scripts=['projects/snmetric_des.py', 'projects/snmetric_lsst.py']
      )
